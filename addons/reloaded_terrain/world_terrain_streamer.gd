@@ -3,8 +3,8 @@ class_name WorldTerrainStreamer
 extends Node
 
 ## The terrain of a world (WorldPack) around the camera: the Terrain3D region of a sector the world
-## loads (MaszynaWorld.sectors, sector_loaded) is read from its source's file
-## (MaszynaWorld.SectorFile.TERRAIN) off the main thread and put into the Terrain3D, the region of a
+## loads (ReloadedProWorld.sectors, sector_loaded) is read from its source's file
+## (ReloadedProWorld.SectorFile.TERRAIN) off the main thread and put into the Terrain3D, the region of a
 ## sector it unloads taken out. The Terrain3D's window of regions (Terrain3DData.region_map_origin)
 ## follows the streaming camera (SceneryStreamingServer), so a world may be of any size - which the
 ## patched Terrain3D of reloaded-terrain allows (patches/terrain3d-region-window.patch). The game's
@@ -24,7 +24,7 @@ signal region_unloading(region: Terrain3DRegion)
 
 @export var terrain: Terrain3D
 
-var _world: MaszynaWorld = null
+var _world: ReloadedProWorld = null
 ## Region location -> its file, of the loaded sectors with terrain
 var _wanted: Dictionary[Vector2i, String] = {}
 ## The thread reading regions; null while none is
@@ -33,12 +33,12 @@ var _reader: Thread = null
 var _unreadable: Dictionary[Vector2i, bool] = {}
 
 
-## Streams the terrain of [param world] as [param description] (MaszynaWorld.read_description())
+## Streams the terrain of [param world] as [param description] (ReloadedProWorld.read_description())
 ## describes it, with the game's terrain atlas
-func open(world: MaszynaWorld, description: Dictionary) -> void:
+func open(world: ReloadedProWorld, description: Dictionary) -> void:
     var terrain_description: Dictionary = description["terrain"]
     terrain.change_region_size(int(terrain_description["region_size"]))
-    # the terrain's atlas, shared by the worlds: in its pack of the game's world_assets (MaszynaWorld.mount()),
+    # the terrain's atlas, shared by the worlds: in its pack of the game's world_assets (ReloadedProWorld.mount()),
     # in the importer's editor registered under the same path (SIWorldAssets)
     terrain.assets = load(terrain_description["assets"]) as Terrain3DAssets
     _world = world
@@ -73,7 +73,7 @@ func is_reading() -> bool:
 
 
 func _on_sector_loaded(id: String) -> void:
-    var path: String = _world.sector_source.sector_get_path(id, MaszynaWorld.SectorFile.TERRAIN)
+    var path: String = _world.sector_source.sector_get_path(id, ReloadedProWorld.SectorFile.TERRAIN)
     if not ResourceLoader.exists(path):
         return
     _wanted[_region_location(id)] = path
@@ -109,7 +109,7 @@ func stream() -> void:
     var origin: Vector2i = data.get_region_map_origin()
     if coming.any(outside.bind(origin)):
         var camera: Vector3 = SceneryStreamingServer.streaming_get_camera_position()
-        origin = Vector2i(floori(camera.x / MaszynaWorld.SECTOR_SIZE), floori(camera.z / MaszynaWorld.SECTOR_SIZE))
+        origin = Vector2i(floori(camera.x / ReloadedProWorld.SECTOR_SIZE), floori(camera.z / ReloadedProWorld.SECTOR_SIZE))
         for location: Vector2i in data.get_region_locations():
             if outside.call(location, origin) and not location in leaving:
                 leaving.append(location)
@@ -134,8 +134,8 @@ func stream() -> void:
 ## The region of the sector [param id]: its location is the square's corner - X runs west, so the
 ## corner is the region's largest X
 func _region_location(id: String) -> Vector2i:
-    var corner: Vector3 = MaszynaWorld.sector_corner(_world.origin, MaszynaWorldSector.cell_of(id))
-    return Vector2i(roundi(corner.x / MaszynaWorld.SECTOR_SIZE) - 1, roundi(corner.z / MaszynaWorld.SECTOR_SIZE))
+    var corner: Vector3 = ReloadedProWorld.sector_corner(_world.origin, ReloadedProWorldSector.cell_of(id))
+    return Vector2i(roundi(corner.x / ReloadedProWorld.SECTOR_SIZE) - 1, roundi(corner.z / ReloadedProWorld.SECTOR_SIZE))
 
 
 ## Reads the regions [param files] (location -> file) - on the reader thread - and hands them, and
