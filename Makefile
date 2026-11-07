@@ -26,7 +26,9 @@ API:=$(CURDIR)/extension_api.json
 # does. Its tag is libmaszyna's (the start of its ci/docker/linux-sdk/Dockerfile's sha256), bumped
 # with it
 LINUX_SDK_IMAGE:=ghcr.io/maszyna-reloaded/linux-sdk:a3d8d7314879
-LINUX_SDK_RUN=docker run --rm --user $(shell id -u):$(shell id -g) -v $(CURDIR):$(CURDIR) -w $(CURDIR) $(LINUX_SDK_IMAGE)
+# The container runs under Docker's init (tini), which hands Ctrl+C on to the whole process group of
+# its command: the command itself, as PID 1, would ignore it and keep the container running
+LINUX_SDK_RUN=docker run --rm --init -e TINI_KILL_PROCESS_GROUP=1 --user $(shell id -u):$(shell id -g) -v $(CURDIR):$(CURDIR) -w $(CURDIR) $(LINUX_SDK_IMAGE)
 DIST_DIR:=dist
 DIST:=$(DIST_DIR)/reloaded-terrain.zip
 
